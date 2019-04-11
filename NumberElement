@@ -1,0 +1,29 @@
+
+using UnityEngine;
+
+public class NumberElement : SingleCoverElement {
+
+    public override void Awake()//重写
+    {
+        base.Awake();
+        elementContent = ElementContent.Number;
+        elementSate = ElementSate.Covered;
+    }
+    public override void OnMidMouseBtn()
+    {
+        
+    }
+    public override void OnCovered()
+    {
+        GameManager.Instance.FloodFillElement(x, y, new bool[GameManager.Instance.w, GameManager.Instance.h]);
+    }
+    public override void UnCoveredElementSingle()
+    {
+        if (elementSate == ElementSate.UnCovered) return;
+        RemoveFlag();
+        elementSate = ElementSate.UnCovered;
+        ClearShadow();
+       LoadSprite(GameManager.Instance.numberTileSprites[GameManager.Instance.CountAdjacent(x, y)]);
+        Instantiate(GameManager.Instance.brickEffect, transform);
+    }
+}
