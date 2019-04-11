@@ -1,0 +1,215 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GameManager : MonoBehaviour {
+    private static GameManager _instance;
+    public static GameManager Instance
+    {
+        get { return _instance; }
+    }
+
+    [Header("元素预制体")]
+    
+    public GameObject bgElement;
+    public GameObject[] borgerElements;
+    public GameObject baseElement;
+    private BaseElement[,] mapArray; //地图元素的二维数组
+
+    public Sprite[] coverTileSprites;
+    public Sprite[] numberTileSprites;
+    public Sprite[] trapTileSprites;
+
+    public GameObject flagElement;
+    public GameObject smokEffect;
+    public GameObject brickEffect;
+
+
+    [Header("关卡设置")]
+    public int w;
+    public int h;
+    public float minTrapProbability;
+    public float maxTrapProbability;
+
+    private void Awake()
+    {
+        _instance = this;
+        mapArray = new BaseElement[w, h];//根据设计的地图宽高 匹配地图数组
+    }
+
+    private void Start()
+    {
+        CreateMap();
+        ResetCamera();
+        InitMap();
+    }
+
+    private void CreateMap()//现在是拼 底图
+    {
+        Transform ScriptsHolder = GameObject.Find("ElementsHolder").transform;
+        Transform bgHolder = GameObject.Find("ElementsHolder/BackGroud").transform;
+        
+        for (int i = 0; i < w; i++)
+        {
+            for (int j = 0; j < h; j++)
+            {
+                Instantiate(bgElement, new Vector3(i, j, 0), Quaternion.identity,bgHolder);//这个是拼地砖
+
+                //下面这个是 在地砖上面 加入可操作的Element元素的 基类。
+                mapArray[i,j]= Instantiate(baseElement, new Vector3(i, j, 0), Quaternion.identity, ScriptsHolder).GetComponent<BaseElement>();
+            }
+        }
+        for(int i = 0; i < w; i++)
+        {
+            Instantiate(borgerElements[0], new Vector3(i, h+0.25f, 0), Quaternion.identity, bgHolder);
+            Instantiate(borgerElements[1], new Vector3(i, -1.25f, 0), Quaternion.identity, bgHolder);
+        }
+        for (int i = 0; i < h; i++)
+        {
+            Instantiate(borgerElements[2], new Vector3(-1.25f, i, 0), Quaternion.identity, bgHolder);
+            Instantiate(borgerElements[3], new Vector3( w+0.25f,i, 0), Quaternion.identity, bgHolder);
+        }
+        Instantiate(borgerElements[4], new Vector3(-1.25f, h+0.25f, 0), Quaternion.identity, bgHolder);
+        Instantiate(borgerElements[5], new Vector3(w + 0.25f, h+0.25f, 0), Quaternion.identity, bgHolder);
+        Instantiate(borgerElements[6], new Vector3(-1.25f, -1.25f, 0), Quaternion.identity, bgHolder);
+        Instantiate(borgerElements[7], new Vector3(w + 0.25f, -1.25f,  0), Quaternion.identity, bgHolder);
+    }
+    private void ResetCamera()//摄像机归到地图中心，通过在game视图模拟计算得出
+    {
+        Camera.main.orthographicSize = (h +3) / 2f;
+        Camera.main.transform.position = new Vector3((w - 1) / 2f, (h - 1) / 2f, -10);
+    }
+    private void InitMap()  //这里是跟进baseElement里面的可用数组 继续创建 派生类
+    {
+        List<int> availableIndex = new List<int>();// 一个int类型的 List
+        for(int i = 0; i < w * h; i++)  
+        {
+            availableIndex.Add(i);//后面的生成都是依据这个 list的count
+        }
+        GenerateTrap(availableIndex);   
+        GenerateNumber(availableIndex);
+
+
+    }
+
+    private void GenerateTrap( List<int> availableIndex ) //创建雷，必须按照list 里面的可用位置来创建
+    {
+        float trapProbability = Random.Range(minTrapProbability, maxTrapProbability);//先随机出比例
+        int trapNum =(int)(trapProbability*availableIndex.Count);//按照比例知道一共有多少个雷
+        for (int i=0;i<trapNum;i++)
+        {
+            int tempIndex = availableIndex[Random.Range(0, availableIndex.Count)]; //通过现有的个数 在位置中来个随机
+            //int x, y;
+            //GetPosition(tempIndex, out x, out y);
+            availableIndex.Remove(tempIndex); //删除掉对应的位置编号，记住是用remove（），而不是删除list[]的位置
+            SetElement(tempIndex, ElementContent.Trap); //根据对应的编号，设置对应的内容。
+            
+        }
+        
+    }
+
+    private void GenerateNumber(List<int> availableIndex)
+    {
+         foreach(int i in availableIndex)
+        {
+            SetElement(i, ElementContent.Number);   //数字element 是最后生成的，
+        }
+        availableIndex.Clear();
+    }
+
+    //1维转2维
+    private void GetPosition(int index,out int x,out int y)  //根据编号，获得xy坐标 。
+    {
+        y = index / w;
+        x = index - y * w;
+    }
+
+    //2维转1维
+    private int GetIndex(int x,int y) //根据xy坐标 返回编号
+    {
+         return w * y + x;
+
+    }
+
+    private BaseElement SetElement(int index,ElementContent elementContent)  //根据编号 设置和替换脚本
+    {
+        int x, y;
+        GetPosition(index, out x, out y);  //因为编号只是编号，必须根据编号来找对应的ELement数组里面的对应的元素
+        GameObject tempGo = mapArray[x, y].gameObject;
+        Destroy(tempGo.GetComponent<BaseElement>());  //找到元素删除基类，根据传进来的内容去替换脚本
+
+        switch (elementContent)
+        {
+            case ElementContent.Trap:
+                mapArray[x, y] = tempGo.AddComponent<TrapElement>();
+                break;
+            case ElementContent.Number:
+                mapArray[x, y] = tempGo.AddComponent<NumberElement>();
+                break;
+            case ElementContent.Tool:
+                break;
+            case ElementContent.SmallWall:
+                break;
+            
+            case ElementContent.Enemy:
+                break;
+        }
+        
+        return mapArray[x, y];
+       
+    }
+
+    public int CountAdjacent(int x,int y)//检查xy轴格子周围的8领域
+    {
+        int count = 0;
+        if (IsSameContent(x + 1, y, ElementContent.Trap)) count++;
+        if (IsSameContent(x, y + 1, ElementContent.Trap)) count++;
+        if (IsSameContent(x - 1, y, ElementContent.Trap)) count++;
+        if (IsSameContent(x, y - 1, ElementContent.Trap)) count++;
+        if (IsSameContent(x + 1, y + 1, ElementContent.Trap)) count++;
+        if (IsSameContent(x + 1, y - 1, ElementContent.Trap)) count++;
+        if (IsSameContent(x - 1, y - 1, ElementContent.Trap)) count++;
+        if (IsSameContent(x - 1, y + 1, ElementContent.Trap)) count++;
+        return count;
+    }
+    public bool IsSameContent(int x,int y,ElementContent elementContent) //根据格子坐标 来判断 是否是对应的 element类型
+    {
+        if (x >= 0 && y >= 0 && x < w && y < h)//检查是否在合格范围
+        {
+            return mapArray[x, y].elementContent == elementContent;
+        }
+        return false;
+    }
+    public void FloodFillElement(int x, int y, bool[,] visited) //泛红算法，需要x，y轴，需要bool类型的数组 
+    {
+        if (x >= 0 && y >= 0 && x < w && y < h) //先判断是否在合格位置
+        {
+            if (visited[x, y]) return; //判断是否访问过，默认所有bool 是没有访问过的
+            if (mapArray[x, y].elementType != ElementType.CantCovered) // 除了不能翻开的element，我们让双翻的和单反的 都可以进行泛红。
+            {
+                ((SingleCoverElement)mapArray[x, y]).UnCoveredElementSingle();
+                //这里要强转的原因，本身base 是没有这个方法的。single有。
+                //地图上所有的元素都是继承base，base里面有点击左键功能，所有的子类也都有这个功能。
+                //点击左键后，会出发   UnCoveredElement（）方法和 OnCovered（）方法 下面是重点：
+                //因为只有number 才有OnCovered（），所以把泛红放在这里。而trap类是没有的，所以是不能进行泛红的。
+
+            }
+            if (CountAdjacent(x, y) > 0) return;  //假如周围有雷，就停止
+            if (mapArray[x, y].elementType == ElementType.CantCovered) return;//如果是不能翻开的，就停止
+            visited[x, y] = true;  //上面的事情做完后，把这个位置标记为 已经访问。
+                               
+            //下面的这8行代码是 递归自己的8个方位 泛红。
+            FloodFillElement(x - 1, y, visited);
+            FloodFillElement(x + 1, y, visited);
+            FloodFillElement(x, y - 1, visited);
+            FloodFillElement(x, y + 1, visited);
+            FloodFillElement(x - 1, y - 1, visited);
+            FloodFillElement(x + 1, y + 1, visited);
+            FloodFillElement(x + 1, y - 1, visited);
+            FloodFillElement(x - 1, y + 1, visited);
+        }
+    }
+}
+
+
+
