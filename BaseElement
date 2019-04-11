@@ -1,0 +1,83 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BaseElement : MonoBehaviour {
+
+    private static BaseElement _instance;
+    public static BaseElement Instance
+    {
+        get { return _instance; }
+    }
+
+    public int x;
+    public int y;
+
+    public ElementContent elementContent;
+    public ElementSate elementSate;
+    public ElementType elementType;
+    
+    public virtual void Awake()
+    {
+        _instance = this;
+        x = (int)transform.position.x; 
+        y = (int)transform.position.y;
+        name = x + "," + y;//获取元素的名字
+    }
+    
+    public void LoadSprite(Sprite sprite)//跟换图片，这个是每个子类都需要的
+    {
+        gameObject.GetComponent<SpriteRenderer>().sprite = sprite;
+    }
+
+    public virtual void OnPlayerStand()
+    {
+
+    }
+    
+
+    
+    public  void OnMouseOver()//鼠标事件，必须外面的元素自己box 2Dclider
+    {
+        if (Input.GetMouseButtonDown(2)&&elementSate==ElementSate.UnCovered)
+        {
+            OnMidMouseBtn();
+            
+        }
+        else if (Input.GetMouseButtonDown(0))
+        {
+            OnLeftMouseBtn();
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            
+            OnRightMouseBtn();
+        }
+
+    }
+    public virtual void OnLeftMouseBtn()
+    {
+        OnPlayerStand();
+    }
+    public virtual void OnRightMouseBtn()
+    {
+        
+
+    }
+    public virtual void OnMidMouseBtn()
+    {
+        
+
+    }
+
+    public void ClearShadow()
+    {
+        Transform temp = transform.Find("shadow");
+        if (temp != null)
+        {
+            Destroy(temp.gameObject);
+        }
+    }
+
+
+}
