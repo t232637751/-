@@ -1,0 +1,86 @@
+
+using UnityEngine;
+using DG.Tweening;
+
+public class SingleCoverElement : BaseElement {
+
+    
+    public override void Awake()
+    {
+        base.Awake();
+        elementType = ElementType.SingleCovered;
+        LoadSprite(GameManager.Instance.coverTileSprites[Random.Range(0, GameManager.Instance.coverTileSprites.Length)]);
+        
+    }
+    public override void OnPlayerStand()
+    {
+        switch (elementSate)
+        {
+            case ElementSate.Covered:
+                UnCoveredElement();
+                break;
+
+            case ElementSate.UnCovered:
+                return;
+            case ElementSate.Marked:
+                RemoveFlag();
+                break;
+
+        }
+    }
+
+    public override void OnRightMouseBtn()
+    {
+        
+        switch (elementSate)
+        {
+            case ElementSate.Covered:
+                AddFlag();
+                break;
+            case ElementSate.Marked:
+                RemoveFlag();
+                break;
+            case ElementSate.UnCovered:
+                return;
+
+        }
+    }
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual void UnCoveredElement()
+    {
+        print("调用父类方法");
+        if (elementSate == ElementSate.UnCovered) return;
+        UnCoveredElementSingle();
+        OnCovered();
+    }
+    public virtual void UnCoveredElementSingle()
+    {
+
+    }
+
+    public virtual void OnCovered()
+    {
+        
+    }
+
+    public void AddFlag()
+    {
+        elementSate = ElementSate.Marked;
+        GameObject tempGo = Instantiate(GameManager.Instance.flagElement, transform);
+        tempGo.name = "FlagElement";
+        tempGo.transform.DOLocalMoveY(0, 0.1f);
+        Instantiate(GameManager.Instance.smokEffect, tempGo.transform);
+    }
+    public void RemoveFlag()
+    {
+        Transform flagElement = transform.Find("FlagElement");
+        if (flagElement != null)
+        {
+            flagElement.DOLocalMoveY(0.14f, 0.1f).onComplete+=()=> { Destroy(flagElement.gameObject); };
+        }
+        elementSate = ElementSate.Covered;
+
+    }
+}
