@@ -1,0 +1,25 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class TrapElement : SingleCoverElement {
+
+    public override void Awake()
+    {
+        base.Awake();
+        elementContent = ElementContent.Trap;
+        elementSate = ElementSate.Covered;
+    }
+    public override void OnCovered()
+    {
+       //TODO 受伤
+    }
+    public override void UnCoveredElementSingle()//左键点击后的重写实现
+    {
+        if (elementSate == ElementSate.UnCovered) return;
+        RemoveFlag();//去旗帜
+        elementSate = ElementSate.UnCovered;
+        ClearShadow();
+        LoadSprite(GameManager.Instance.trapTileSprites[Random.Range(0, GameManager.Instance.trapTileSprites.Length)]);//随机显示
+    }
+}
